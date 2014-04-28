@@ -1,0 +1,3 @@
+[submodule "PingPongLevDemo"]
+	path = PingPongLevDemo
+	url = git@pontech.dyndns.org:~/arduino/pingponglevsketch

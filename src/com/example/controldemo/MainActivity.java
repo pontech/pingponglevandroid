@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,16 +15,8 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	public volatile static SerialClass Serial;
+	Thread readthread = new Thread(new ReadLoop());
 	
-	int led = 81;
-    String HIGH = " 1";
-    String LOW = " 0";
-    String INPUT = " 0";
-    String OUTPUT = " 1";
-    String OPEN = " 2";
-    String True = " 1";
-    String False = " 0";
-
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -34,7 +27,8 @@ public class MainActivity extends Activity {
 			Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
 			TimerTask(10000);
 		}
-		SetupHardware();
+		readthread = new Thread(new ReadLoop());
+		readthread.start();
 	}
 
 	@Override
@@ -61,29 +55,12 @@ public class MainActivity extends Activity {
 			Serial.connect(true);
 			if (SerialClass.connected) {
 				Toast.makeText(this, "connected", Toast.LENGTH_SHORT).show();
-				SetupHardware();
 				TimerTask(10000);
 			} else {
 				Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT)
 						.show();
 			}
 		}
-	}
-
-	public void SetupHardware() {
-		Serial.Write("pinmode " + String.valueOf(led) + OUTPUT);
-	}
-
-	public void LEDON(View view) {
-		Serial.Write("digitalwrite " + String.valueOf(led) + HIGH);
-	}
-
-	public void LEDOFF(View view) {
-		Serial.Write("digitalwrite " + String.valueOf(led) + LOW);
-	}
-
-	public void LEDREAD(View view) {
-		Toast.makeText(this, Serial.WriteRead("digitalread " + String.valueOf(led), 250), Toast.LENGTH_SHORT).show(); 
 	}
 
 	void TimerTask(int time) {
@@ -99,6 +76,25 @@ public class MainActivity extends Activity {
 			}
 		};
 		handler.postDelayed(r, interval);
+	}
+
+	private static class ReadLoop implements Runnable {
+		@Override
+		public void run() {
+			String test;
+			try {
+				while (SerialClass.connected) { // MainActivity.Serial.connected
+					test = Serial.Read_Asyn(0);
+					if (test.startsWith("invals")) {
+						//parse vals into arrays tell display to update
+					}
+					Thread.sleep(5);
+				}
+			} catch (InterruptedException e) {
+				Log.d("Read", "Read Thread Crashed");
+				return;
+			}
+		}
 	}
 
 }
