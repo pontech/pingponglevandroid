@@ -14,21 +14,17 @@ import android.view.View;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-	public volatile static SerialClass Serial;
-	Thread readthread = new Thread(new ReadLoop());
+	public volatile static AccessorySerial AccessoryClass;
+	public static Context usethis;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		Serial = new SerialClass(
-				(UsbManager) getSystemService(Context.USB_SERVICE), this);
-		if (SerialClass.connected) {
-			Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
-			TimerTask(10000);
+		usethis = this;
+		if (AccessoryClass == null) {
+			AccessoryClass = new AccessorySerial(usethis);
 		}
-		readthread = new Thread(new ReadLoop());
-		readthread.start();
 	}
 
 	@Override
@@ -41,26 +37,33 @@ public class MainActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.ConnectDisconect:
-			connect2Board();
+			//connect2Board();
 			break;
 		}
 		return false;
 	}
 
-	public void connect2Board() {
-		if (SerialClass.connected) {
-			Serial.connect(false);
-			Toast.makeText(this, "disconnected", Toast.LENGTH_SHORT).show();
-		} else {
-			Serial.connect(true);
-			if (SerialClass.connected) {
-				Toast.makeText(this, "connected", Toast.LENGTH_SHORT).show();
-				TimerTask(10000);
-			} else {
-				Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT)
-						.show();
-			}
-		}
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		AccessoryClass.disconnectFromAccessory();
+	}
+
+	@Override
+	public void onBackPressed() { // prevent back button
+		return;
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		AccessoryClass.resumeconnect();
+	}
+
+	@Override
+	public void onPause() {
+		//AccessoryClass.disconnectFromAccessory();
+		super.onPause();
 	}
 
 	void TimerTask(int time) {
@@ -69,7 +72,7 @@ public class MainActivity extends Activity {
 		final int interval = time;
 		r = new Runnable() {
 			public void run() {
-				if (SerialClass.connected) {
+				if (AccessoryClass.connected) {
 					// something to do periodically while connected
 					handler.postDelayed(this, interval);
 				}
@@ -77,24 +80,14 @@ public class MainActivity extends Activity {
 		};
 		handler.postDelayed(r, interval);
 	}
-
-	private static class ReadLoop implements Runnable {
-		@Override
-		public void run() {
-			String test;
-			try {
-				while (SerialClass.connected) { // MainActivity.Serial.connected
-					test = Serial.Read_Asyn(0);
-					if (test.startsWith("invals")) {
-						//parse vals into arrays tell display to update
-					}
-					Thread.sleep(5);
-				}
-			} catch (InterruptedException e) {
-				Log.d("Read", "Read Thread Crashed");
-				return;
-			}
-		}
+	
+	public void onpress(View view) {
+		Toast.makeText(this, AccessoryClass.sendCommand("on"), Toast.LENGTH_SHORT).show();
 	}
+
+	public void offpress(View view) {
+		Toast.makeText(this, AccessoryClass.sendCommand("off"), Toast.LENGTH_SHORT).show();
+	}
+
 
 }
