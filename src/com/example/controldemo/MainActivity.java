@@ -212,15 +212,13 @@ public class MainActivity extends Activity {
 				paint.setTextAlign(Paint.Align.CENTER);
 				paint.setTextSize(20.0f);
 				for (int i = 1; i <= n; i++) {
-					temp = Math
-							.round(10 * (minx + (i - 1) * (maxx - minx) / n)) / 10;
+					temp = Math.round(10 * (minx + (i - 1) * (maxx - minx) / n)) / 10;
 					canvas.drawText("" + temp / 10,
 							(float) toPixelInt(canvasWidth, minx, maxx, temp),
 							canvasHeight - locxAxisInPixels + 20, paint);
-					temp = Math
-							.round(10 * (miny + (i - 1) * (maxy - miny) / n)) / 10;
+					temp = Math.round(10 * (miny + (i - 1) * (maxy - miny) / n)) / 10;
 					canvas.drawText(
-							"" + temp,
+							String.valueOf((double)temp/10.0),
 							locyAxisInPixels + 20,
 							canvasHeight
 									- (float) toPixelInt(canvasHeight, miny,
@@ -254,7 +252,6 @@ public class MainActivity extends Activity {
 							// (line from last point to first)
 			while (pointIterator.hasNext()) {
 				previousPoint = currentPoint;
-				int currentIndex = pointIterator.nextIndex();
 				currentPoint = pointIterator.next();
 				if (previousPoint != null && count < vectorLength) {
 
@@ -286,7 +283,6 @@ public class MainActivity extends Activity {
 							// (line from last point to first)
 			while (pointIterator.hasNext()) {
 				previousPoint = currentPoint;
-				int currentIndex = pointIterator.nextIndex();
 				currentPoint = pointIterator.next();
 				if (previousPoint != null && count < vectorLength) {
 
@@ -297,7 +293,11 @@ public class MainActivity extends Activity {
 				}
 				count++;
 			}
-
+			paint.setStrokeWidth(5);
+			paint.setColor(Color.YELLOW);
+			int powertop = toPixelInt(canvasHeight, miny, maxy, (float) (power*0.055));
+			canvas.drawLine(canvasWidth-10, canvasHeight -powertop, canvasWidth-10, canvasHeight - locxAxisInPixels, paint);
+			
 			invalidate();
 			super.onDraw(canvas);
 		}
@@ -328,7 +328,7 @@ public class MainActivity extends Activity {
 					newval = newval +.25;
 					newval = newval> 5.5 ? 5.5 : newval;
 					newval = newval< 2 ? 2 : newval;
-					Toast.makeText(usethis, AccessoryClass.sendCommand("setsetpoint " + String.valueOf(newval)), Toast.LENGTH_SHORT).show();
+					AccessoryClass.sendCommand("setsetpoint " + String.valueOf(newval));
 				} catch (NumberFormatException e) {
 					Toast.makeText(usethis, e.getMessage(), Toast.LENGTH_SHORT).show();
 				}
@@ -340,7 +340,7 @@ public class MainActivity extends Activity {
 					newval = newval -.25;
 					newval = newval> 5.5 ? 5.5 : newval;
 					newval = newval< 2 ? 2 : newval;
-					Toast.makeText(usethis, AccessoryClass.sendCommand("setsetpoint " + String.valueOf(newval)), Toast.LENGTH_SHORT).show();
+					AccessoryClass.sendCommand("setsetpoint " + String.valueOf(newval));
 				} catch (NumberFormatException e) {
 					Toast.makeText(usethis, e.getMessage(), Toast.LENGTH_SHORT).show();
 				}
@@ -373,7 +373,7 @@ public class MainActivity extends Activity {
 		miny = getMin(yvalues);
 		maxx = getMax(xvalues);
 		// maxy=getMax(yvalues);
-		maxy = 100; // for presentation
+		maxy = 60; // for presentation
 
 		if (minx >= 0)
 			locyAxis = minx;
