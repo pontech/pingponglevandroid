@@ -227,7 +227,7 @@ public class MainActivity extends Activity {
 				canvas.drawText("" + maxx / 10,
 						(float) toPixelInt(canvasWidth, minx, maxx, maxx),
 						canvasHeight - locxAxisInPixels + 20, paint);
-				canvas.drawText("" + maxy, locyAxisInPixels + 20, canvasHeight
+				canvas.drawText(String.valueOf((double)maxy/10.0), locyAxisInPixels + 20, canvasHeight
 						- (float) toPixelInt(canvasHeight, miny, maxy, maxy),
 						paint);
 			}
