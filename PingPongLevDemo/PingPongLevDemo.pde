@@ -5,26 +5,15 @@
 #include "pic32lib/DetectEdge.h"
 #include "pic32lib/Cron.h"
 #include <PID_v1.h>
-// KardCxPx is a multi-dimensional array where the first
-// index points the Kard slot and the second point to the
-// GPIO pin on the Kard, the first four GPIO pins generaly
-// connect to the rail pin Px.
+
+Cron cron;
+#line 11 "PingPongLevDemo.pde"
+
 #define WindowSize 1000
 #define WantNewLine
 #define basefromsensor 9
-
-uint8_t KardCxPx[7][6] = {
-                    { 68, 58, 62, 55, 82, 32 }, // Kard 0
-                    { 57, 56, 63, 54, 83, 31 }, // Kard 1
-                    { 86, 64,  5, 70, 84, 30 }, // Kard 2
-                    { 22, 76,  9,  2, 35, 52 }, // Kard 3
-                    { 23, 39,  8, 21, 34, 50 }, // Kard 4
-                    { 78, 79, 10, 20, 33, 85 }, // Kard 5
-                    { 44, 44, 44, 44, 44, 44 }, // Kard Com
-                   };
-char led[] = {37, 81};
-
-Cron cron;
+#define pwmPin 2
+#define sensorPin 2
 
 us8 buff[0x30];
 us8 ctr;
@@ -109,13 +98,13 @@ int processInput(char* buffer, int size, char* reply_buffer) {
     tokpars.nextToken();
     ctr = 0;
     if( tokpars.compare("RESET") ) {
-      Serial1.print("Close serial terminal, resetting board in...");
-      PrintCR();
+//      Serial.print("Close serial terminal, resetting board in...");
+//      PrintCR();
       us8 sec;
       for( sec = 5; sec >= 1; sec-- ) {
-        Serial1.print(sec, DEC);
-        Serial1.print(" seconds...");
-        PrintCR();
+//        Serial.print(sec, DEC);
+//        Serial.print(" seconds...");
+//        PrintCR();
         delay(1000);
       }
       Reset();
@@ -228,16 +217,16 @@ void ProcessHost() {
                 // for the next loop iteration (data is already inside write_buffer)
                 write_size = writeSize;
             } else {
-//                Serial1.print("Error trying to complete read: errorCode=");
-//                Serial1.println(errorCode, HEX);
+//                Serial.print("Error trying to complete read: errorCode=");
+//                Serial.println(errorCode, HEX);
             }
         }
         
         // Send data to Android device
         if(write_size > 0 && !writeInProgress) {
-//            Serial1.print("Write: ");
-//            Serial1.print(write_buffer);
-//            Serial1.println();
+            Serial.print("Write: ");
+            Serial.print(write_buffer);
+            Serial.println();
           
             writeSize = write_size;
             // Require command is already in the buffer to be sent.
@@ -247,8 +236,8 @@ void ProcessHost() {
             if(errorCode == USB_SUCCESS) {
                 writeInProgress = TRUE;
             } else {
-                Serial1.print("Error trying to complete read: errorCode=");
-                Serial1.println(errorCode, HEX);
+//                Serial.print("Error trying to complete read: errorCode=");
+//                Serial.println(errorCode, HEX);
                 
                 write_size = 0;
             }
@@ -261,8 +250,8 @@ void ProcessHost() {
                 write_size = 0;
     
                 if(errorCode != USB_SUCCESS) {
-//                    Serial1.print("Error trying to complete read: errorCode=");
-//                    Serial1.println(errorCode, HEX);
+//                    Serial.print("Error trying to complete read: errorCode=");
+//                    Serial.println(errorCode, HEX);
                 }
             }
         }
@@ -270,13 +259,12 @@ void ProcessHost() {
 }
 
 void setup() {
-  Serial1.begin(115200);
-  pinMode(KardCxPx[0][0], OUTPUT);
-  pinMode(KardCxPx[0][1], OUTPUT);
+  U1OTGCONSET = 0x04;
+  Serial.begin(115200);
+  pinMode(pwmPin, OPEN);
   pinMode(PIN_LED1, OUTPUT);
   pinMode(PIN_LED2, OUTPUT);
-  digitalWrite(KardCxPx[0][0], LOW);
-  digitalWrite(KardCxPx[0][1], LOW);
+  digitalWrite(pwmPin, LOW);
   cron.add(flash);
   ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_3);
   OpenTimer3(T3_ON | T3_PS_1_32, 25);
@@ -296,7 +284,7 @@ void loop() {
   ProcessHost();
   cron.scheduler();
   double duration, inches, cm;
-  duration = readDistanceSensor(KardCxPx[3][3]);
+  duration = readDistanceSensor(sensorPin);
   // convert the time into a distance
   inches = microsecondsToInches(duration);
   if(inches>0) {
@@ -308,9 +296,9 @@ void loop() {
   if(Running) {
     myPID.Compute();
   }
-  if (Serial1.available() > 0)//  if (Serial.available() > 0 || Serial1.available() > 0)
+  if (Serial.available() > 0)//  if (Serial.available() > 0 || Serial.available() > 0)
   {
-    ch = Serial1.read();
+    ch = Serial.read();
     if( ctr < sizeof(buff)) {
       buff[ctr++] = ch;
     }
@@ -320,7 +308,7 @@ void loop() {
       char outbuf[20];
       us8 sizeout = processInput( (char*)buff, ctr-1, outbuf);
       if (sizeout>0) {
-        Serial1.println(outbuf);
+        Serial.println(outbuf);
       }
       ctr = 0;
     }
@@ -354,14 +342,15 @@ void Reset()
 
 void PrintCR() {
   #ifdef WantNewLine
-  Serial1.print("\r\n");
+  Serial.print("\r\n");
   #else
-  Serial1.print("\r");
+  Serial.print("\r");
   #endif
 }
 
 double readDistanceSensor(char pingPin)
 {
+  return 0.0;
   delay(2);
   // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
@@ -411,16 +400,14 @@ extern "C"
       {
         if(!outholdval){
           outholdval = true;
-          digitalWrite(KardCxPx[0][0],HIGH);
-          digitalWrite(KardCxPx[0][1],HIGH);
+          digitalWrite(pwmPin,HIGH);
         }
       }
       else
       {
         if(outholdval){
           outholdval = false;
-          digitalWrite(KardCxPx[0][0],LOW);
-          digitalWrite(KardCxPx[0][1],LOW);
+          digitalWrite(pwmPin,LOW);
         }
       }
       counter++;
@@ -431,8 +418,7 @@ extern "C"
     }
     else
     {
-          digitalWrite(KardCxPx[0][0],LOW);
-          digitalWrite(KardCxPx[0][1],LOW);
+          digitalWrite(pwmPin,LOW);
     }
   }
 } // end extern "C"
