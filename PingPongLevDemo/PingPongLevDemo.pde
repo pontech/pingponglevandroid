@@ -261,7 +261,7 @@ void ProcessHost() {
 void setup() {
   U1OTGCONSET = 0x04;
   Serial.begin(115200);
-  pinMode(pwmPin, OUTPUT); //OPEN
+  pinMode(pwmPin, OPEN);
   pinMode(PIN_LED1, OUTPUT);
   pinMode(PIN_LED2, OUTPUT);
   pinMode(triggerPin, OUTPUT);
