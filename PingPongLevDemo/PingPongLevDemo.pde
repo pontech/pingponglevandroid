@@ -11,9 +11,9 @@ Cron cron;
 
 #define WindowSize 1000
 #define WantNewLine
-#define basefromsensor 9
 #define pwmPin 2
-#define sensorPin 2
+#define sensorPin 3
+#define triggerPin 4
 
 us8 buff[0x30];
 us8 ctr;
@@ -165,7 +165,7 @@ int processInput(char* buffer, int size, char* reply_buffer) {
       strcpy(reply_buffer, spbuf);// Prepare reply
     }
     else if( tokpars.compare("READSTATUS") ) {
-      sprintf(spbuf,"%4.4f %4.4f %4.4f",basefromsensor-position_inches_averaged_noisy,SetPoint,Output);
+      sprintf(spbuf,"%4.4f %4.4f %4.4f",position_inches_averaged_noisy,SetPoint,Output);
       strcpy(reply_buffer, spbuf);// Prepare reply
     }
     else if( tokpars.compare("LETMEGO") ) {
@@ -261,13 +261,18 @@ void ProcessHost() {
 void setup() {
   U1OTGCONSET = 0x04;
   Serial.begin(115200);
-  pinMode(pwmPin, OPEN);
+  pinMode(pwmPin, OUTPUT); //OPEN
   pinMode(PIN_LED1, OUTPUT);
   pinMode(PIN_LED2, OUTPUT);
+  pinMode(triggerPin, OUTPUT);
+  pinMode(sensorPin, INPUT);
   digitalWrite(pwmPin, LOW);
+  digitalWrite(triggerPin, LOW);
   cron.add(flash);
+  cron.add(processSensor);
   ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_3);
-  OpenTimer3(T3_ON | T3_PS_1_32, 25);
+  //OpenTimer3(T3_ON | T3_PS_1_4, 1000); // 50us period (calculated [1/(80MHz/4) * 1000 = 50us]
+  OpenTimer3(T3_ON | T3_PS_1_4, 50);
 
   myPID.SetOutputLimits(0, WindowSize);
   //turn the PID on
@@ -283,20 +288,11 @@ void setup() {
 void loop() {
   ProcessHost();
   cron.scheduler();
-  double duration, inches, cm;
-  duration = readDistanceSensor(sensorPin);
-  // convert the time into a distance
-  inches = microsecondsToInches(duration);
-  if(inches>0) {
-    position_inches_averaged = (position_inches_averaged * 0.999) + (inches * 0.001);
-    position_inches_averaged_noisy = (position_inches_averaged * 0.6) + (inches * 0.4);
-  }
-  Input = basefromsensor-position_inches_averaged;
   
   if(Running) {
     myPID.Compute();
   }
-  if (Serial.available() > 0)//  if (Serial.available() > 0 || Serial.available() > 0)
+  if (Serial.available() > 0)
   {
     ch = Serial.read();
     if( ctr < sizeof(buff)) {
@@ -325,6 +321,22 @@ void flash() {
   self->yield = millis() + 1000;
 }
 
+void processSensor() {
+  Cron::CronDetail *self = cron.self();
+
+  double duration, inches;
+  duration = readDistanceSensor(sensorPin,triggerPin);
+  // convert the time into a distance
+  inches = microsecondsToInches(duration);
+  if(inches>0) {
+    position_inches_averaged = (position_inches_averaged * 0.999) + (inches * 0.001);
+    position_inches_averaged_noisy = (position_inches_averaged * 0.6) + (inches * 0.4);
+  }
+  Input = position_inches_averaged;
+
+  self->yield = millis() + 2;
+}
+
 void Reset()
 {
 #ifdef VIRTUAL_PROGRAM_BUTTON_TRIS
@@ -348,23 +360,14 @@ void PrintCR() {
   #endif
 }
 
-double readDistanceSensor(char pingPin)
+double readDistanceSensor(char pingPin, char trigPin)
 {
-  return 0.0;
-  delay(2);
-  // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
-  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  pinMode(pingPin, OUTPUT);
-  digitalWrite(pingPin, LOW);
+  digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-  digitalWrite(pingPin, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(pingPin, LOW);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
 
-  // The same pin is used to read the signal from the PING))): a HIGH
-  // pulse whose duration is the time (in microseconds) from the sending
-  // of the ping to the reception of its echo off of an object.
-  pinMode(pingPin, INPUT);
   return pulseIn(pingPin, HIGH);
 }
 
